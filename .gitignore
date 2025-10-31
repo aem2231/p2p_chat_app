@@ -1,0 +1,8 @@
+# Build artifacts
+/bin/
+/obj/
+/compile_commands.json
+
+# Cache and environment files
+/.cache/
+/.direnv/
