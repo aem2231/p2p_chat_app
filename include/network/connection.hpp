@@ -1,26 +1,38 @@
 #pragma once
+#include "core/message.hpp"
 #include "network/peer.hpp"
 #include <boost/asio.hpp>
+#include <functional>
 #include <memory>
 #include <thread>
 #include <mutex>
-#include <string>
-
 
 class Connection {
   private:
   // member variables
+  std::shared_ptr<Peer> peer_;
+  boost::asio::io_context& io_context_;
+  boost::asio::ip::tcp::socket socket_;
+  std::thread recieve_thread_;
+  std::function<void(const Message&)> on_message_received_;
+  bool connected_;
+  std::mutex mutex_;
 
-  void recieveLoop();
+  // background thread function
+  void receiveLoop();
 
   public:
-  Connection();
+  Connection(
+    std::shared_ptr<Peer> peer,
+    boost::asio::io_context& io_ctx,
+    std::function<void(const Message&)> callback
+  );
 
   ~Connection();
 
   void connect();
-  void sendMessage(const std::string& text);
+  void sendMessage(const Message& msg);
   void disconnect();
-  void isConnected() const;
+  bool isConnected() const;
 
-}
+};
