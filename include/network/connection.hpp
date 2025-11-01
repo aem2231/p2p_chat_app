@@ -13,12 +13,13 @@ class Connection {
   std::shared_ptr<Peer> peer_;
   boost::asio::io_context& io_context_;
   boost::asio::ip::tcp::socket socket_;
-  std::thread recieve_thread_;
+  std::thread receive_thread_;
   std::function<void(const Message&)> on_message_received_;
   bool connected_;
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
 
   // background thread function
+  // listens for incoming messages
   void receiveLoop();
 
   public:
