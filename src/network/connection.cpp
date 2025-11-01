@@ -32,8 +32,11 @@ void Connection::connect() {
     // connect to peer
     socket_.connect(endpoint);
 
-    std::lock_guard<std::mutex> lock(mutex_);
-    connected_ = true;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      connected_ = true;
+
+    }
 
     // start recieve thread
     receive_thread_ = std::thread(&Connection::receiveLoop, this);
@@ -46,8 +49,11 @@ void Connection::connect() {
 }
 
 void Connection::sendMessage(const Message& msg) {
-  if (!connected_) {
-    return;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!connected_) {
+      return;
+    }
   }
 
   try { // try send a message
@@ -80,8 +86,10 @@ void Connection::receiveLoop() {
 }
 
 void Connection::disconnect() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  connected_ = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    connected_ = false;
+  }
   socket_.close();
   if (receive_thread_.joinable()) {
     receive_thread_.join();
