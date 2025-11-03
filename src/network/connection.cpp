@@ -35,7 +35,6 @@ void Connection::connect() {
     {
       std::lock_guard<std::mutex> lock(mutex_);
       connected_ = true;
-
     }
 
     // start recieve thread

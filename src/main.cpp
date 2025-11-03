@@ -3,9 +3,11 @@
 #include "ui/chat_window.hpp"
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
+#include <boost/asio.hpp>
 
 int main() {
-  App app;
+  boost::asio::io_context io_context;
+  App app(io_context);
   PeerList peer_list(&app);
   ChatWindow chat_window(&app);
 
