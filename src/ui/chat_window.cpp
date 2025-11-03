@@ -1,6 +1,7 @@
 #include "ui/chat_window.hpp"
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/component_base.hpp>
+#include <ftxui/component/event.hpp>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/screen/terminal.hpp>
 
@@ -23,6 +24,16 @@ ChatWindow::ChatWindow(App* app)
       auto input_display = ftxui::hbox({
         ftxui::text("> "),
         input_component_->Render()
+      });
+
+      // event handler
+      input_component_ |= ftxui::CatchEvent([this](ftxui::Event event) {
+        if (event == ftxui::Event::Return && input_text_ != "") {
+          app_->sendMessageToSelected(input_text_);
+          input_text_.clear();
+          return true;
+        }
+        return false;
       });
 
       // layout

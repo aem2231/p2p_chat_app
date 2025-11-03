@@ -5,6 +5,8 @@
 #include <memory>
 #include <iostream>
 #include <mutex>
+#include <utility>
+#include <vector>
 
 App::App(boost::asio::io_context& io_ctx)
   : selected_index_(-1),
@@ -80,12 +82,53 @@ bool App::isConnectedTo(std::shared_ptr<Peer> peer) const {
   return connection_ptr->isConnected();
 }
 
+std::shared_ptr<Connection> App::getConnection(std::shared_ptr<Peer> peer) const {
+  auto connection = connections_.find(peer);
+  if (connection == connections_.end()) {
+    return nullptr;
+  }
+  return connection->second;
+}
+
 void App::onMessageRecieved(std::shared_ptr<Peer> from, const Message& msg) {
   {
     std::lock_guard<std::mutex> lock(message_queue_mutex_);
     message_history_[from].push_back(msg);
     incoming_messages_.push({from, msg});
   }
+}
 
+void App::sendMessageToSelected(const std::string& text){
+  auto peer = getSelectedPeer();
+  auto connection = getConnection(peer);
 
+  if (!peer || connection == nullptr || !connection->isConnected()) {
+    return;
+    // add auto connect later
+  }
+
+  auto message = Message("You", text);
+  connection->sendMessage(message);
+  message_history_[peer].push_back(message);
+}
+
+std::vector<std::pair<std::shared_ptr<Peer>, Message>> App::pollIncomingMessages() {
+  {
+    std::lock_guard<std::mutex> lock(message_queue_mutex_);
+    std::vector<std::pair<std::shared_ptr<Peer>, Message>> messages;
+    while (!incoming_messages_.empty()) {
+      messages.push_back(incoming_messages_.front());
+      incoming_messages_.pop();
+    }
+    return messages;
+  }
+}
+
+const std::vector<Message>& App::getMessageHistory(std::shared_ptr<Peer> peer) {
+  auto history = message_history_.find(peer);
+  if (history == message_history_.end()) {
+    static const std::vector<Message> empty_history;
+    return empty_history;
+  }
+  return history->second;
 }

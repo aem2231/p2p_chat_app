@@ -24,6 +24,8 @@ class App {
   std::queue<std::pair<std::shared_ptr<Peer>, Message>> incoming_messages_;
   mutable std::mutex message_queue_mutex_;
   void onMessageRecieved(std::shared_ptr<Peer> from, const Message& msg);
+  std::shared_ptr<Connection> getConnection(std::shared_ptr<Peer> peer) const;
+
 
   public:
   App(boost::asio::io_context& io_ctx);
