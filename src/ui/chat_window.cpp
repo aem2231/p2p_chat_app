@@ -27,10 +27,9 @@ ChatWindow::ChatWindow(App* app)
 
       // layout
       return ftxui::vbox({
-        ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1),  // empty line
         title,
         ftxui::separator(),
-        ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1),  // spacing
+        ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, static_cast<float>(0.5)),  // spacing
         messages | ftxui::flex,
         ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1),
         ftxui::separator(),
