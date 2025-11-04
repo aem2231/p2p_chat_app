@@ -4,6 +4,8 @@
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <boost/asio.hpp>
+#include <thread>
+#include <chrono>
 
 int main() {
   boost::asio::io_context io_context;
@@ -18,6 +20,19 @@ int main() {
   });
 
   auto screen = ftxui::ScreenInteractive::Fullscreen();
+
+  std::thread poller([&] {
+    while (true) {
+      if (!app.pollIncomingMessages().empty()) {
+        screen.PostEvent(ftxui::Event::Custom);
+      }
+
+      using namespace std::chrono_literals;
+      std::this_thread::sleep_for(100ms);
+    }
+  });
+  poller.detach();
+
   screen.Loop(layout);
 
   return 0;

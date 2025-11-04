@@ -23,9 +23,14 @@ class App {
   std::map<std::shared_ptr<Peer>, std::vector<Message>> message_history_;
   std::queue<std::pair<std::shared_ptr<Peer>, Message>> incoming_messages_;
   mutable std::mutex message_queue_mutex_;
-  void onMessageRecieved(std::shared_ptr<Peer> from, const Message& msg);
   std::shared_ptr<Connection> getConnection(std::shared_ptr<Peer> peer) const;
-
+  std::thread listener_thread;
+  std::mutex listener_mutex_;
+  boost::asio::ip::tcp::acceptor acceptor_;
+  bool listening_;
+  void onMessageReceived(std::shared_ptr<Peer> from, const Message& msg);
+  void listenerLoop();
+  std::pair<std::string, std::string> parseHandshake(const std::string& handshake);
 
   public:
   App(boost::asio::io_context& io_ctx);

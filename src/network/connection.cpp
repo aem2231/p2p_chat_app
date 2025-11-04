@@ -3,6 +3,7 @@
 #include "network/peer.hpp"
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/write.hpp>
+#include <functional>
 #include <iostream>
 #include <istream>
 #include <mutex>
@@ -15,10 +16,20 @@ Connection::Connection(
   boost::asio::io_context& io_ctx,
   std::function<void(const Message&)> callback
 ) : peer_(peer),
-  io_context_(io_ctx),
-  socket_(io_context_),
+  socket_(io_ctx),
   on_message_received_(callback),
   connected_(false) {};
+
+Connection::Connection(
+  std::shared_ptr<Peer> peer,
+  std::function<void(const Message&)> callback,
+  boost::asio::ip::tcp::socket socket
+) : peer_(peer),
+    socket_(std::move(socket)),
+    on_message_received_(callback),
+    connected_(true) {
+  receive_thread_ = std::thread(&Connection::receiveLoop, this);
+}
 
 Connection::~Connection() {
   disconnect();

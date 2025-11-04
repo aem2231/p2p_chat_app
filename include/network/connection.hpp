@@ -11,7 +11,6 @@ class Connection {
   private:
   // member variables
   std::shared_ptr<Peer> peer_;
-  boost::asio::io_context& io_context_;
   boost::asio::ip::tcp::socket socket_;
   std::thread receive_thread_;
   std::function<void(const Message&)> on_message_received_;
@@ -27,6 +26,12 @@ class Connection {
     std::shared_ptr<Peer> peer,
     boost::asio::io_context& io_ctx,
     std::function<void(const Message&)> callback
+  );
+
+  Connection(
+    std::shared_ptr<Peer> peer,
+    std::function<void(const Message&)> callback,
+    boost::asio::ip::tcp::socket socket
   );
 
   ~Connection();

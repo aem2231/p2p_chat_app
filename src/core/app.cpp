@@ -2,16 +2,45 @@
 #include "core/message.hpp"
 #include "network/connection.hpp"
 #include "network/peer.hpp"
+#include <cstddef>
+#include <istream>
 #include <memory>
 #include <iostream>
 #include <mutex>
+#include <string>
 #include <utility>
 #include <vector>
 
+constexpr unsigned short DEFAULT_PORT = 9000;
+
 App::App(boost::asio::io_context& io_ctx)
   : selected_index_(-1),
-    io_context_(io_ctx) {
+    io_context_(io_ctx),
+    listener_thread(std::thread(&App::listenerLoop, this)),
+    acceptor_(io_ctx, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), DEFAULT_PORT)),
+    listening_(true) {
   peers_ = discovery_.getPeers();
+
+  // --- Start of mock message code ---
+
+  // Find the 'root' peer so we can add messages for them.
+  std::shared_ptr<Peer> root_peer = nullptr;
+  for (const auto& p : peers_) {
+      if (p->getHostname() == "root") {
+          root_peer = p;
+          break;
+      }
+  }
+
+  // If we found the peer, add some fake messages to the history.
+  if (root_peer) {
+      message_history_[root_peer].push_back(Message("root", "Hey"));
+      message_history_[root_peer].push_back(Message("You", "You are gay..."));
+      message_history_[root_peer].push_back(Message("root", "Fuck you"));
+      message_history_[root_peer].push_back(Message("root", "Wait this might be true"));
+  }
+
+  // --- End of mock message code ---
 };
 
 const std::vector<std::shared_ptr<Peer>>& App::getPeers() const {
@@ -51,7 +80,7 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
   // define a callback that Connection executes in a background thread
   // captures 'this'  to call app's handler and 'peer' to indetify the sender
   auto callback = [this, peer](const Message& msg) {
-    this->onMessageRecieved(peer, msg);
+    this->onMessageReceived(peer, msg);
   };
 
   // create a new connection
@@ -90,7 +119,7 @@ std::shared_ptr<Connection> App::getConnection(std::shared_ptr<Peer> peer) const
   return connection->second;
 }
 
-void App::onMessageRecieved(std::shared_ptr<Peer> from, const Message& msg) {
+void App::onMessageReceived(std::shared_ptr<Peer> from, const Message& msg) {
   {
     std::lock_guard<std::mutex> lock(message_queue_mutex_);
     message_history_[from].push_back(msg);
@@ -98,7 +127,7 @@ void App::onMessageRecieved(std::shared_ptr<Peer> from, const Message& msg) {
   }
 }
 
-void App::sendMessageToSelected(const std::string& text){
+void App::sendMessageToSelected(const std::string& text) {
   auto peer = getSelectedPeer();
   auto connection = getConnection(peer);
 
@@ -110,7 +139,9 @@ void App::sendMessageToSelected(const std::string& text){
   auto message = Message("You", text);
   connection->sendMessage(message);
   message_history_[peer].push_back(message);
+  incoming_messages_.push({peer, message});
 }
+
 
 std::vector<std::pair<std::shared_ptr<Peer>, Message>> App::pollIncomingMessages() {
   {
@@ -131,4 +162,53 @@ const std::vector<Message>& App::getMessageHistory(std::shared_ptr<Peer> peer) {
     return empty_history;
   }
   return history->second;
+}
+
+std::pair<std::string, std::string> App::parseHandshake(const std::string& handshake) {
+  size_t first_pipe = handshake.find("|");
+  if (first_pipe == std::string::npos) {
+    return {};
+  }
+  // check if magic word is present
+  std::string magic_word = handshake.substr(0, first_pipe);
+  if (magic_word != "HELLO") {
+    return {};
+  }
+
+  // extract hostname
+  size_t second_pipe = handshake.find("|", first_pipe+1);
+  if (second_pipe == std::string::npos) {
+    return {};
+  }
+  std::string handshake_hostname = handshake.substr(first_pipe+1, second_pipe - first_pipe - 1);
+
+  // extract ip
+  std::string handshake_ip = handshake.substr(second_pipe+1);
+
+  return {handshake_hostname, handshake_ip};
+}
+
+void App::listenerLoop() {
+  while (listening_) {
+    boost::asio::ip::tcp::socket socket(io_context_);
+    acceptor_.accept(socket);
+    boost::asio::streambuf buffer;
+    boost::asio::read_until(socket, buffer, "\n");
+    std::istream is(&buffer);
+    std::string data;
+    std::getline(is, data);
+    auto handshake_data = parseHandshake(data);
+    for (const auto& peer : peers_) {
+      if (peer->getHostname() == handshake_data.first &&
+        peer->getIpAddr() == boost::asio::ip::make_address(handshake_data.second)){
+          auto new_connection = std::make_shared<Connection>(
+            peer,
+            [this, peer](const Message& msg){this->onMessageReceived(peer, msg);},
+            std::move(socket)
+          );
+          connections_[peer] = new_connection;
+          break;
+        }
+    }
+  }
 }
