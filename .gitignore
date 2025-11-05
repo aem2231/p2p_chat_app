@@ -6,3 +6,7 @@
 # Cache and environment files
 /.cache/
 /.direnv/
+
+# valgrind
+/valgrind.log
+vgcore.*

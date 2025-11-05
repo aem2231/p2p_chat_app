@@ -16,32 +16,11 @@ constexpr unsigned short DEFAULT_PORT = 9000;
 App::App(boost::asio::io_context& io_ctx)
   : selected_index_(-1),
     io_context_(io_ctx),
-    listener_thread(std::thread(&App::listenerLoop, this)),
+    //listener_thread(std::thread(&App::listenerLoop, this)),
     acceptor_(io_ctx, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), DEFAULT_PORT)),
     listening_(true) {
-  peers_ = discovery_.getPeers();
-
-  // --- Start of mock message code ---
-
-  // Find the 'root' peer so we can add messages for them.
-  std::shared_ptr<Peer> root_peer = nullptr;
-  for (const auto& p : peers_) {
-      if (p->getHostname() == "root") {
-          root_peer = p;
-          break;
-      }
-  }
-
-  // If we found the peer, add some fake messages to the history.
-  if (root_peer) {
-      message_history_[root_peer].push_back(Message("root", "Hey"));
-      message_history_[root_peer].push_back(Message("You", "You are gay..."));
-      message_history_[root_peer].push_back(Message("root", "Fuck you"));
-      message_history_[root_peer].push_back(Message("root", "Wait this might be true"));
-  }
-
-  // --- End of mock message code ---
-};
+  discovery_.start();
+  };
 
 const std::vector<std::shared_ptr<Peer>>& App::getPeers() const {
   return peers_;
@@ -141,7 +120,6 @@ void App::sendMessageToSelected(const std::string& text) {
   message_history_[peer].push_back(message);
   incoming_messages_.push({peer, message});
 }
-
 
 std::vector<std::pair<std::shared_ptr<Peer>, Message>> App::pollIncomingMessages() {
   {
