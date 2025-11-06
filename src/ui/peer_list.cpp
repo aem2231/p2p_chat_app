@@ -7,6 +7,7 @@
 #include <ftxui/screen/color.hpp>
 #include <memory>
 #include <vector>
+#include <iostream>
 
 PeerList::PeerList(App* app, ftxui::Component chat_input)
   : app_(app), chat_input_(chat_input) {
