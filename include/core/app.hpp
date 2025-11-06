@@ -53,4 +53,5 @@ class App {
   const std::vector<Message>& getMessageHistory(std::shared_ptr<Peer> peer);
   void performInitialDiscovery();
   void refreshPeers();
+  void stop();
 };

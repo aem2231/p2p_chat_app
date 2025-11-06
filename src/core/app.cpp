@@ -34,8 +34,16 @@ App::App(boost::asio::io_context& io_ctx)
 }
 
 App::~App() {
+  stop();
+}
+
+void App::stop() {
   listening_ = false;
-  listener_thread.join();
+  acceptor_.close();
+  if (listener_thread.joinable()) {
+    listener_thread.join();
+  }
+  discovery_.stop();
 }
 
 const std::vector<std::shared_ptr<Peer>>& App::getPeers() const {
