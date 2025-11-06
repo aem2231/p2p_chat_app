@@ -36,6 +36,8 @@ class App {
   public:
   App(boost::asio::io_context& io_ctx);
 
+  ~App();
+
   // Peer managment
   const std::vector<std::shared_ptr<Peer>>& getPeers() const;
 

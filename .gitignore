@@ -10,3 +10,6 @@
 # valgrind
 /valgrind.log
 vgcore.*
+
+# other
+REVIEW.md

@@ -33,6 +33,11 @@ App::App(boost::asio::io_context& io_ctx)
   acceptor_.listen();
 }
 
+App::~App() {
+  listening_ = false;
+  listener_thread.join();
+}
+
 const std::vector<std::shared_ptr<Peer>>& App::getPeers() const {
   return peers_;
 }
