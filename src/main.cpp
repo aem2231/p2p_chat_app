@@ -26,10 +26,27 @@ int main() {
 
   auto screen = ftxui::ScreenInteractive::Fullscreen();
 
-  /*
   std::thread poller([&] {
+    auto last_peer_refresh = std::chrono::steady_clock::now();
+
     while (true) {
+      bool should_refresh_ui = false;
+
+      // check for new messages
       if (!app.pollIncomingMessages().empty()) {
+        should_refresh_ui = true;
+      }
+
+      // refresh peer list every 30s
+      auto now = std::chrono::steady_clock::now();
+      if (now - last_peer_refresh > std::chrono::seconds(10)) {
+        app.refreshPeers();
+        last_peer_refresh = now;
+        should_refresh_ui = true;
+      }
+
+      // refresh ui if needed
+      if (should_refresh_ui) {
         screen.PostEvent(ftxui::Event::Custom);
       }
 
@@ -38,7 +55,6 @@ int main() {
     }
   });
   poller.detach();
-  */
 
   screen.Loop(layout);
 

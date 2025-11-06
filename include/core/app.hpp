@@ -24,9 +24,9 @@ class App {
   std::queue<std::pair<std::shared_ptr<Peer>, Message>> incoming_messages_;
   mutable std::mutex message_queue_mutex_;
   std::shared_ptr<Connection> getConnection(std::shared_ptr<Peer> peer) const;
+  boost::asio::ip::tcp::acceptor acceptor_;
   std::thread listener_thread;
   std::mutex listener_mutex_;
-  boost::asio::ip::tcp::acceptor acceptor_;
   bool listening_;
   void onMessageReceived(std::shared_ptr<Peer> from, const Message& msg);
   void listenerLoop();
