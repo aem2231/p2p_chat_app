@@ -40,11 +40,9 @@ ChatWindow::ChatWindow(App* app)
       const auto& message_history = app_->getMessageHistory(selected);
 
       if (!message_history.empty()){
-        size_t max_name_length = std::max(selected->getHostname().length(), (size_t)3);
         ftxui::Elements message_elements;
         for (const auto& msg : message_history) {
           auto sender_element = ftxui::text(msg.sender) | ftxui::bold;
-          sender_element |= size(ftxui::WIDTH, ftxui::EQUAL, max_name_length);
           auto content_element = ftxui::text(": " + msg.content);
           auto time_elemenet = ftxui::text(" [" + msg.getFormattedTime() + "]") | ftxui::color(ftxui::Color(ftxui::Color::GrayDark));
 
