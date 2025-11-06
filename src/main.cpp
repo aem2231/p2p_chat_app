@@ -11,7 +11,7 @@ int main() {
   boost::asio::io_context io_context;
   App app(io_context);
 
-  // First, start the discovery service and get the initial list of peers
+  // start the discovery service and get the initial list of peers
   app.performInitialDiscovery();
   app.refreshPeers();
 

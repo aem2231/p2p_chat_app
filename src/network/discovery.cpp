@@ -21,13 +21,24 @@ Discovery::~Discovery() {
 }
 
 void Discovery::start() {
-  this->running_ = true;
+  // open and configure sockets first, before starting threads.
+  try {
+    // configure the broadcast socket
+    broadcast_socket_.open(boost::asio::ip::udp::v4());
+    broadcast_socket_.set_option(boost::asio::socket_base::broadcast(true));
 
+    // configure the receive socket
+    receive_socket_.open(boost::asio::ip::udp::v4());
+    receive_socket_.set_option(boost::asio::socket_base::reuse_address(true));
+    receive_socket_.bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4::any(), DISCOVERY_PORT));
+  } catch (const boost::system::system_error& e) {
+    // if sockets fail to open, we can't proceed.
+    return;
+  }
+
+  running_ = true;
   broadcast_thread_ = std::thread(&Discovery::broadcastLoop, this);
-  // broadcast_thread_.detach(); // Do not detach
-
   receive_thread_ = std::thread(&Discovery::receiveLoop, this);
-  // receive_thread_.detach(); // Do not detach
 }
 
 void Discovery::stop() {
@@ -59,11 +70,6 @@ void Discovery::addPeer(const std::shared_ptr<Peer>& new_peer) {
 }
 
 void Discovery::receiveLoop() {
-
-  receive_socket_.open(boost::asio::ip::udp::v4());
-  receive_socket_.set_option(boost::asio::socket_base::reuse_address(true));
-  receive_socket_.bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4::any(), DISCOVERY_PORT));
-
   while (running_) {
     try {
       std::array<char, 1024> recv_buffer;
@@ -73,12 +79,9 @@ void Discovery::receiveLoop() {
         boost::asio::buffer(recv_buffer), sender_endpoint
       );
 
-      //  convert data to string
       std::string message(recv_buffer.data(), len);
 
-      // check message type
       if (message.rfind("P2P_PONG|", 0) == 0) {
-        // find first pipe and extract hostname
         size_t first_pipe = message.find("|");
         if (first_pipe != std::string::npos) {
           std::string hostname = message.substr(first_pipe + 1);
@@ -87,7 +90,11 @@ void Discovery::receiveLoop() {
           addPeer(new_peer);
         }
       } else if (message == "P2P_PING") {
-        std::string hostname = "test";
+        std::string hostname = "unknown_host";
+        try {
+          hostname = boost::asio::ip::host_name();
+        } catch (const boost::system::system_error&) {}
+
         std::string response_message = "P2P_PONG|" + hostname;
 
         broadcast_socket_.send_to(
@@ -97,7 +104,7 @@ void Discovery::receiveLoop() {
       }
 
     } catch (const boost::system::system_error& e) {
-
+      // Errors are expected here when the socket is closed, so we can ignore them in the loop
     }
   }
 }
@@ -105,15 +112,8 @@ void Discovery::receiveLoop() {
 void Discovery::broadcastLoop () {
   using namespace std::chrono_literals;
 
-  // create an endpoint representing al devices on a network
   auto broadcast_address = boost::asio::ip::address_v4::broadcast();
   boost::asio::ip::udp::endpoint broadcast_endpoint(broadcast_address, DISCOVERY_PORT);
-
-  // open socket for ipv4 udp
-
-  broadcast_socket_.open(boost::asio::ip::udp::v4());
-  broadcast_socket_.set_option(boost::asio::socket_base::broadcast(true));
-
   std::string message = "P2P_PING";
 
   while (running_) {
@@ -121,7 +121,7 @@ void Discovery::broadcastLoop () {
       broadcast_socket_.send_to(boost::asio::buffer(message), broadcast_endpoint);
       std::this_thread::sleep_for(3s);
     } catch (const boost::system::system_error& e) {
-
+      // Errors are expected here when the socket is closed, so we can ignore them in the loop
     }
   }
 }
