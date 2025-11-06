@@ -48,4 +48,6 @@ class App {
   void sendMessageToSelected(const std::string& text);
   std::vector<std::pair<std::shared_ptr<Peer>, Message>> pollIncomingMessages();
   const std::vector<Message>& getMessageHistory(std::shared_ptr<Peer> peer);
+  void performInitialDiscovery();
+  void refreshPeers();
 };

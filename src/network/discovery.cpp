@@ -12,7 +12,9 @@ const unsigned short DISCOVERY_PORT = 9001;
 
 Discovery::Discovery()
   : broadcast_socket_(io_context_),
-  receive_socket_(io_context_) {}
+  receive_socket_(io_context_) {
+
+}
 
 Discovery::~Discovery() {
   this->stop();
@@ -22,10 +24,10 @@ void Discovery::start() {
   this->running_ = true;
 
   broadcast_thread_ = std::thread(&Discovery::broadcastLoop, this);
-  broadcast_thread_.detach();
+  // broadcast_thread_.detach(); // Do not detach
 
   receive_thread_ = std::thread(&Discovery::receiveLoop, this);
-  receive_thread_.detach();
+  // receive_thread_.detach(); // Do not detach
 }
 
 void Discovery::stop() {
@@ -57,7 +59,9 @@ void Discovery::addPeer(const std::shared_ptr<Peer>& new_peer) {
 }
 
 void Discovery::receiveLoop() {
+
   receive_socket_.open(boost::asio::ip::udp::v4());
+  receive_socket_.set_option(boost::asio::socket_base::reuse_address(true));
   receive_socket_.bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4::any(), DISCOVERY_PORT));
 
   while (running_) {
@@ -93,7 +97,7 @@ void Discovery::receiveLoop() {
       }
 
     } catch (const boost::system::system_error& e) {
-      std::cerr << "Recieve loop network error: " << e.what() << std::endl;
+
     }
   }
 }
@@ -106,6 +110,7 @@ void Discovery::broadcastLoop () {
   boost::asio::ip::udp::endpoint broadcast_endpoint(broadcast_address, DISCOVERY_PORT);
 
   // open socket for ipv4 udp
+
   broadcast_socket_.open(boost::asio::ip::udp::v4());
   broadcast_socket_.set_option(boost::asio::socket_base::broadcast(true));
 
@@ -116,7 +121,7 @@ void Discovery::broadcastLoop () {
       broadcast_socket_.send_to(boost::asio::buffer(message), broadcast_endpoint);
       std::this_thread::sleep_for(3s);
     } catch (const boost::system::system_error& e) {
-      std::cerr << "Broadcast loop network error: " << e.what() << std::endl;
+
     }
   }
 }

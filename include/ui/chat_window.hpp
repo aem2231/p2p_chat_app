@@ -12,6 +12,6 @@ class ChatWindow{
 
   public:
   ChatWindow(App* app);
-
+  ftxui::Component getInputComponent() { return input_component_; }
   ftxui::Component getComponent();
 };

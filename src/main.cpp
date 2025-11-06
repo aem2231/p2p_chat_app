@@ -10,8 +10,13 @@
 int main() {
   boost::asio::io_context io_context;
   App app(io_context);
-  PeerList peer_list(&app);
+
+  // First, start the discovery service and get the initial list of peers
+  app.performInitialDiscovery();
+  app.refreshPeers();
+
   ChatWindow chat_window(&app);
+  PeerList peer_list(&app, chat_window.getInputComponent());
 
   // Layout
   auto layout = ftxui::Container::Horizontal({
@@ -21,6 +26,7 @@ int main() {
 
   auto screen = ftxui::ScreenInteractive::Fullscreen();
 
+  /*
   std::thread poller([&] {
     while (true) {
       if (!app.pollIncomingMessages().empty()) {
@@ -32,6 +38,7 @@ int main() {
     }
   });
   poller.detach();
+  */
 
   screen.Loop(layout);
 

@@ -13,14 +13,21 @@
 
 constexpr unsigned short DEFAULT_PORT = 9000;
 
+// The new, more robust constructor
 App::App(boost::asio::io_context& io_ctx)
   : selected_index_(-1),
     io_context_(io_ctx),
-    //listener_thread(std::thread(&App::listenerLoop, this)),
-    acceptor_(io_ctx, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), DEFAULT_PORT)),
+    acceptor_(io_context_),
+    listener_thread(std::thread(&App::listenerLoop, this)),
     listening_(true) {
-  discovery_.start();
-  };
+
+  // configure acceptor
+  acceptor_.open(boost::asio::ip::tcp::v4());
+  acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
+  acceptor_.bind(boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), DEFAULT_PORT));
+  acceptor_.listen();
+
+}
 
 const std::vector<std::shared_ptr<Peer>>& App::getPeers() const {
   return peers_;
@@ -189,4 +196,12 @@ void App::listenerLoop() {
         }
     }
   }
+}
+
+void App::performInitialDiscovery() {
+  discovery_.start();
+}
+
+void App::refreshPeers() {
+  peers_ = discovery_.getPeers();
 }
