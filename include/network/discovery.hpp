@@ -11,8 +11,7 @@ class Discovery{
   private:
   boost::asio::io_context io_context_;
 
-  boost::asio::ip::udp::socket broadcast_socket_;
-  boost::asio::ip::udp::socket receive_socket_;
+  boost::asio::ip::udp::socket socket_;
 
   std::thread broadcast_thread_;
   std::thread receive_thread_;
