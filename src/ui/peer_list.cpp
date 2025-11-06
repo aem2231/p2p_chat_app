@@ -20,13 +20,15 @@ PeerList::PeerList(App* app, ftxui::Component chat_input)
       // loop through peers and build a list of them
       for (size_t i = 0; i < peers.size(); ++i) {
         const auto& peer = peers[i];
-        bool is_connected = app_->isConnectedTo(peer);
 
-        std::string status_symbol = is_connected ? "[●] " : "[ ] ";
-        auto name_element = ftxui::text(status_symbol + peer->getHostname());
+        auto name_element = ftxui::text(peer->getHostname());
 
-        if (is_connected) {
-          name_element |= ftxui::color(ftxui::Color::Green);
+        if (app_->isConnectedTo(peer)) {
+          name_element = ftxui::text("[●] " + peer->getHostname()) | ftxui::color(ftxui::Color::Green);
+        } else if (app_->isConnectingTo(peer)) {
+          name_element = ftxui::text("[~] " + peer->getHostname()) | ftxui::color(ftxui::Color::Yellow);
+        } else {
+          name_element = ftxui::text("[ ] " + peer->getHostname());
         }
 
         // apply a style when a peer is selected

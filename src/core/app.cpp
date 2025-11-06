@@ -73,34 +73,52 @@ int App::getSelectedIndex() const {
 }
 
 void App::connectToPeer(std::shared_ptr<Peer> peer) {
-  // check if the peer is valid
-  if (!peer) { return; }
+  std::thread connector_thread([this, peer] {
+    // check if we are connecting to a peer to prevent double connections
+    {
+      const std::lock_guard<std::mutex> lock(connecting_peers_mutex_);
+      if (connecting_peers_.count(peer)) {
+        return;
+      }
+      connecting_peers_.insert(peer);
+    }
 
-  if (App::isConnectedTo(peer)) {
-    return;
-  }
+    // check if the peer is valid
+    if (!peer) {
+      const std::lock_guard<std::mutex> lock(connecting_peers_mutex_);
+      connecting_peers_.erase(peer);
+      return;
+    }
 
-  // define a callback that Connection executes in a background thread
-  // captures 'this'  to call app's handler and 'peer' to indetify the sender
-  auto callback = [this, peer](const Message& msg) {
-    this->onMessageReceived(peer, msg);
-  };
+    if (App::isConnectedTo(peer)) {
+      const std::lock_guard<std::mutex> lock(connecting_peers_mutex_);
+      connecting_peers_.erase(peer);
+      return;
+    }
 
-  // create a new connection
-  auto new_connection = std::make_shared<Connection>(
-    peer,
-    io_context_,
-    callback
-  );
+    auto callback = [this, peer](const Message& msg) {
+      this->onMessageReceived(peer, msg);
+    };
 
-  // add the new connection to the connections map
-  connections_.insert({peer, new_connection});
-  try {
-    new_connection->connect();
-  } catch (const std::exception& e) {
-    std::cerr << "Connection failed: " << e.what() << std::endl;
-    connections_.erase(peer);
-  }
+    auto new_connection = std::make_shared<Connection>(
+      peer,
+      io_context_,
+      callback
+    );
+
+    connections_.insert({peer, new_connection});
+    try {
+      new_connection->connect();
+    } catch (const std::exception& e) {
+      connections_.erase(peer);
+    }
+
+    {
+      const std::lock_guard<std::mutex> lock(connecting_peers_mutex_);
+      connecting_peers_.erase(peer);
+    }
+  });
+  connector_thread.detach();
 }
 
 bool App::isConnectedTo(std::shared_ptr<Peer> peer) const {
@@ -111,6 +129,11 @@ bool App::isConnectedTo(std::shared_ptr<Peer> peer) const {
 
   auto connection_ptr = connection->second;
   return connection_ptr->isConnected();
+}
+
+bool App::isConnectingTo(std::shared_ptr<Peer> peer) const {
+  const std::lock_guard<std::mutex> lock(connecting_peers_mutex_);
+  return connecting_peers_.count(peer);
 }
 
 std::shared_ptr<Connection> App::getConnection(std::shared_ptr<Peer> peer) const {
@@ -131,9 +154,14 @@ void App::onMessageReceived(std::shared_ptr<Peer> from, const Message& msg) {
 
 void App::sendMessageToSelected(const std::string& text) {
   auto peer = getSelectedPeer();
+  if (!peer) {
+    return;
+  }
+
   auto connection = getConnection(peer);
 
-  if (!peer || connection == nullptr || !connection->isConnected()) {
+  if (connection == nullptr || !connection->isConnected()) {
+    connectToPeer(peer); // auto-connect on send
     return;
   }
 

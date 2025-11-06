@@ -12,6 +12,7 @@
 #include <queue>
 #include <utility>
 #include <vector>
+#include <set>
 
 class App {
   private:
@@ -31,6 +32,8 @@ class App {
   bool listening_;
   void onMessageReceived(std::shared_ptr<Peer> from, const Message& msg);
   void listenerLoop();
+  mutable std::mutex connecting_peers_mutex_;
+  std::set<std::shared_ptr<Peer>> connecting_peers_;
 
   public:
   explicit App(boost::asio::io_context& io_ctx);
@@ -47,6 +50,7 @@ class App {
   void connectToPeer(std::shared_ptr<Peer> peer);
   void disconnectFromPeer(std::shared_ptr<Peer> peer);
   bool isConnectedTo(std::shared_ptr<Peer> peer) const;
+  bool isConnectingTo(std::shared_ptr<Peer> peer) const;
   void sendMessageToSelected(const std::string& text);
   std::vector<std::pair<std::shared_ptr<Peer>, Message>> pollIncomingMessages();
   const std::vector<Message>& getMessageHistory(std::shared_ptr<Peer> peer);
