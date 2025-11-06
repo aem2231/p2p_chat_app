@@ -15,6 +15,7 @@
 
 class App {
   private:
+  std::string my_hostname_;
   Discovery discovery_;
   std::vector<std::shared_ptr<Peer>> peers_;
   int selected_index_;

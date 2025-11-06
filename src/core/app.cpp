@@ -13,20 +13,24 @@
 
 constexpr unsigned short DEFAULT_PORT = 9000;
 
-// The new, more robust constructor
 App::App(boost::asio::io_context& io_ctx)
   : selected_index_(-1),
     io_context_(io_ctx),
+    my_hostname_("unknown"),
     acceptor_(io_context_),
     listener_thread(std::thread(&App::listenerLoop, this)),
     listening_(true) {
 
-  // configure acceptor
+  try {
+    my_hostname_ = boost::asio::ip::host_name();
+  } catch (const boost::system::system_error&) {
+    // fallback to "unknown"
+  }
+
   acceptor_.open(boost::asio::ip::tcp::v4());
   acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
   acceptor_.bind(boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), DEFAULT_PORT));
   acceptor_.listen();
-
 }
 
 const std::vector<std::shared_ptr<Peer>>& App::getPeers() const {
@@ -118,13 +122,16 @@ void App::sendMessageToSelected(const std::string& text) {
 
   if (!peer || connection == nullptr || !connection->isConnected()) {
     return;
-    // add auto connect later
   }
 
-  auto message = Message("You", text);
-  connection->sendMessage(message);
-  message_history_[peer].push_back(message);
-  incoming_messages_.push({peer, message});
+  // Create the message with our real hostname to send over the network
+  auto message_to_send = Message(my_hostname_, text);
+  connection->sendMessage(message_to_send);
+
+  // Create a second version of the message for our own local history
+  auto message_for_history = Message("You", text);
+  message_history_[peer].push_back(message_for_history);
+  incoming_messages_.push({peer, message_for_history});
 }
 
 std::vector<std::pair<std::shared_ptr<Peer>, Message>> App::pollIncomingMessages() {
