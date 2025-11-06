@@ -79,6 +79,7 @@ void Discovery::receiveLoop() {
     );
 
     std::string message(recv_buffer.data(), len);
+    std::cout << "DEBUG: Received UDP message: \"" << message << "\" from " << sender_endpoint.address().to_string() << std::endl;
 
     if (message.rfind("P2P_PONG|", 0) == 0) {
       size_t first_pipe = message.find("|");
@@ -96,7 +97,7 @@ void Discovery::receiveLoop() {
 
       std::string response_message = "P2P_PONG|" + hostname;
 
-      broadcast_socket_.send_to(
+      receive_socket_.send_to(
         boost::asio::buffer(response_message),
         sender_endpoint
       );
