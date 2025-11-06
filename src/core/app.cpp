@@ -204,5 +204,4 @@ void App::performInitialDiscovery() {
 
 void App::refreshPeers() {
   peers_ = discovery_.getPeers();
-  std::cout << "DEBUG: App refreshed peer list. Found " << peers_.size() << " peers." << std::endl;
 }

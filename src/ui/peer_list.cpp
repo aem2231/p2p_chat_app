@@ -16,7 +16,6 @@ PeerList::PeerList(App* app, ftxui::Component chat_input)
 
     container_ = ftxui::Renderer([this] {
       auto peers = app_->getPeers();
-      std::cout << "DEBUG: UI rendering peer list with " << peers.size() << " peers." << std::endl;
       ftxui::Elements elements;
 
       // loop through peers and build a list of them

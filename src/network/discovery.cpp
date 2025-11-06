@@ -46,6 +46,15 @@ void Discovery::stop() {
 }
 
 void Discovery::addPeer(const std::shared_ptr<Peer>& new_peer) {
+  // don't add our own device to the peer list
+  try {
+    if (new_peer->getHostname() == boost::asio::ip::host_name()) {
+      return;
+    }
+  } catch (const boost::system::system_error&) {
+    // failed to get local hostname
+  }
+
   const std::lock_guard<std::mutex> lock(peers_mutex_);
 
   bool exists = false;
@@ -57,7 +66,6 @@ void Discovery::addPeer(const std::shared_ptr<Peer>& new_peer) {
   }
   if (!exists) {
     discovered_peers_.push_back(new_peer);
-    std::cout << "DEBUG: Discovery service added new peer: " << new_peer->getHostname() << std::endl;
   }
 }
 
@@ -72,8 +80,6 @@ void Discovery::receiveLoop() {
       );
 
       std::string message(recv_buffer.data(), len);
-      std::cout << "DEBUG: Received UDP message: \"" << message << "\" from " << sender_endpoint.address().to_string() << std::endl;
-
       if (message.rfind("P2P_PONG|", 0) == 0) {
         size_t first_pipe = message.find("|");
         if (first_pipe != std::string::npos) {
