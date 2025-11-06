@@ -174,25 +174,35 @@ std::pair<std::string, std::string> App::parseHandshake(const std::string& hands
 
 void App::listenerLoop() {
   while (listening_) {
-    boost::asio::ip::tcp::socket socket(io_context_);
-    acceptor_.accept(socket);
-    boost::asio::streambuf buffer;
-    boost::asio::read_until(socket, buffer, "\n");
-    std::istream is(&buffer);
-    std::string data;
-    std::getline(is, data);
-    auto handshake_data = parseHandshake(data);
-    for (const auto& peer : peers_) {
-      if (peer->getHostname() == handshake_data.first &&
-        peer->getIpAddr() == boost::asio::ip::make_address(handshake_data.second)){
-          auto new_connection = std::make_shared<Connection>(
-            peer,
-            [this, peer](const Message& msg){this->onMessageReceived(peer, msg);},
-            std::move(socket)
-          );
-          connections_[peer] = new_connection;
+    try {
+      boost::asio::ip::tcp::socket socket(io_context_);
+      acceptor_.accept(socket);
+
+      auto remote_ip = socket.remote_endpoint().address();
+      std::shared_ptr<Peer> connected_peer = nullptr;
+
+      for (const auto& peer : peers_) {
+        if (peer->getIpAddr() == remote_ip) {
+          connected_peer = peer;
           break;
         }
+      }
+
+      if (connected_peer) {
+        auto callback = [this, connected_peer](const Message& msg) {
+          this->onMessageReceived(connected_peer, msg);
+        };
+        auto new_connection = std::make_shared<Connection>(
+          connected_peer,
+          callback,
+          std::move(socket)
+        );
+        connections_[connected_peer] = new_connection;
+      } else {
+        socket.close();
+      }
+    } catch (const boost::system::system_error& e) {
+      // Errors are expected here if the acceptor is closed, so we can ignore them.
     }
   }
 }
