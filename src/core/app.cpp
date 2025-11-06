@@ -19,7 +19,6 @@ App::App(boost::asio::io_context& io_ctx)
     io_context_(io_ctx),
     acceptor_(io_context_),
     listener_thread(std::thread(&App::listenerLoop, this)),
-    listener_thread(std::thread(&App::listenerLoop, this)),
     listening_(true) {
 
   // configure acceptor
