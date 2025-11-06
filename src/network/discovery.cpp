@@ -66,6 +66,7 @@ void Discovery::addPeer(const std::shared_ptr<Peer>& new_peer) {
   }
   if (!exists) {
     discovered_peers_.push_back(new_peer);
+    std::cout << "DEBUG: Discovery service added new peer: " << new_peer->getHostname() << std::endl;
   }
 }
 
