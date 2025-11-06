@@ -73,7 +73,10 @@ PeerList::PeerList(App* app, ftxui::Component chat_input)
 
     if (event == ftxui::Event::Return || event == ftxui::Event::ArrowRight) {
       if (auto selected = app_->getSelectedPeer()) {
-        app_->connectToPeer(selected);
+        std::thread connector_thread([this, selected] {
+          app_->connectToPeer(selected);
+        });
+        connector_thread.detach();
       }
       chat_input_->TakeFocus();
       return true;
