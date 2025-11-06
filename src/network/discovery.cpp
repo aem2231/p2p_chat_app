@@ -71,40 +71,35 @@ void Discovery::addPeer(const std::shared_ptr<Peer>& new_peer) {
 
 void Discovery::receiveLoop() {
   while (running_) {
-    try {
-      std::array<char, 1024> recv_buffer;
-      boost::asio::ip::udp::endpoint sender_endpoint;
+    std::array<char, 1024> recv_buffer;
+    boost::asio::ip::udp::endpoint sender_endpoint;
 
-      size_t len = receive_socket_.receive_from(
-        boost::asio::buffer(recv_buffer), sender_endpoint
-      );
+    size_t len = receive_socket_.receive_from(
+      boost::asio::buffer(recv_buffer), sender_endpoint
+    );
 
-      std::string message(recv_buffer.data(), len);
+    std::string message(recv_buffer.data(), len);
 
-      if (message.rfind("P2P_PONG|", 0) == 0) {
-        size_t first_pipe = message.find("|");
-        if (first_pipe != std::string::npos) {
-          std::string hostname = message.substr(first_pipe + 1);
-          std::string ip_addr = sender_endpoint.address().to_string();
-          auto new_peer = std::make_shared<Peer>(hostname, ip_addr);
-          addPeer(new_peer);
-        }
-      } else if (message == "P2P_PING") {
-        std::string hostname = "unknown_host";
-        try {
-          hostname = boost::asio::ip::host_name();
-        } catch (const boost::system::system_error&) {}
-
-        std::string response_message = "P2P_PONG|" + hostname;
-
-        broadcast_socket_.send_to(
-          boost::asio::buffer(response_message),
-          sender_endpoint
-        );
+    if (message.rfind("P2P_PONG|", 0) == 0) {
+      size_t first_pipe = message.find("|");
+      if (first_pipe != std::string::npos) {
+        std::string hostname = message.substr(first_pipe + 1);
+        std::string ip_addr = sender_endpoint.address().to_string();
+        auto new_peer = std::make_shared<Peer>(hostname, ip_addr);
+        addPeer(new_peer);
       }
+    } else if (message == "P2P_PING") {
+      std::string hostname = "unknown_host";
+      try {
+        hostname = boost::asio::ip::host_name();
+      } catch (const boost::system::system_error&) {}
 
-    } catch (const boost::system::system_error& e) {
-      // Errors are expected here when the socket is closed, so we can ignore them in the loop
+      std::string response_message = "P2P_PONG|" + hostname;
+
+      broadcast_socket_.send_to(
+        boost::asio::buffer(response_message),
+        sender_endpoint
+      );
     }
   }
 }
