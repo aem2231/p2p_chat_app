@@ -5,10 +5,9 @@
 #include <vector>
 #include <boost/asio.hpp>
 #include <mutex>
-#include <iostream>
-#include <chrono>
 
-const unsigned short DISCOVERY_PORT = 9001;
+constexpr unsigned short DISCOVERY_PORT = 9001;
+constexpr const char* PING_MESSAGE = "P2P_PING";
 
 Discovery::Discovery()
   : socket_(io_context_) {
@@ -37,7 +36,8 @@ void Discovery::start() {
 
 void Discovery::stop() {
   running_ = false;
-  socket_.close();
+  boost::system::error_code ec;
+  socket_.close(ec);
 }
 
 void Discovery::addPeer(const std::shared_ptr<Peer>& new_peer) {
@@ -83,7 +83,7 @@ void Discovery::receiveLoop() {
           auto new_peer = std::make_shared<Peer>(hostname, ip_addr);
           addPeer(new_peer);
         }
-      } else if (message == "P2P_PING") {
+      } else if (message == PING_MESSAGE) {
         std::string hostname = "unknown_host";
         try {
           hostname = boost::asio::ip::host_name();
@@ -107,7 +107,7 @@ void Discovery::broadcastLoop () {
 
   auto broadcast_address = boost::asio::ip::address_v4::broadcast();
   boost::asio::ip::udp::endpoint broadcast_endpoint(broadcast_address, DISCOVERY_PORT);
-  std::string message = "P2P_PING";
+  std::string message = PING_MESSAGE;
 
   while (running_) {
     try {

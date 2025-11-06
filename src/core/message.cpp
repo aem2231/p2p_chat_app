@@ -50,7 +50,7 @@ Message Message::deserialize(const std::string& data) {
 // format time to HH:MM:SS
 std::string Message::getFormattedTime() const {
   auto time_t_value = std::chrono::system_clock::to_time_t(timestamp);
-  std::tm* local_time = std::localtime(&time_t_value);
+  const std::tm* local_time = std::localtime(&time_t_value);
   char buffer[9];
   std::strftime(buffer, sizeof(buffer), "%H:%M:%S", local_time);
   return std::string(buffer);

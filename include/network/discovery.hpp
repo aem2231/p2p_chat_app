@@ -5,7 +5,6 @@
 #include <boost/asio.hpp>
 #include <mutex>
 #include <thread>
-#include <chrono>
 
 class Discovery{
   private:

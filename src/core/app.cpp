@@ -14,8 +14,9 @@
 constexpr unsigned short DEFAULT_PORT = 9000;
 
 App::App(boost::asio::io_context& io_ctx)
-  : selected_index_(-1),
-    my_hostname_("unknown"),
+
+  : my_hostname_("unknown"),
+    selected_index_(-1),
     io_context_(io_ctx),
     acceptor_(io_context_),
     listener_thread(std::thread(&App::listenerLoop, this)),
@@ -166,30 +167,6 @@ const std::vector<Message>& App::getMessageHistory(std::shared_ptr<Peer> peer) {
     return empty_history;
   }
   return history->second;
-}
-
-std::pair<std::string, std::string> App::parseHandshake(const std::string& handshake) {
-  size_t first_pipe = handshake.find("|");
-  if (first_pipe == std::string::npos) {
-    return {};
-  }
-  // check if magic word is present
-  std::string magic_word = handshake.substr(0, first_pipe);
-  if (magic_word != "HELLO") {
-    return {};
-  }
-
-  // extract hostname
-  size_t second_pipe = handshake.find("|", first_pipe+1);
-  if (second_pipe == std::string::npos) {
-    return {};
-  }
-  std::string handshake_hostname = handshake.substr(first_pipe+1, second_pipe - first_pipe - 1);
-
-  // extract ip
-  std::string handshake_ip = handshake.substr(second_pipe+1);
-
-  return {handshake_hostname, handshake_ip};
 }
 
 void App::listenerLoop() {

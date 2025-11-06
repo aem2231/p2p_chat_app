@@ -1,7 +1,5 @@
 #include "ui/chat_window.hpp"
 #include "core/app.hpp"
-#include "network/peer.hpp"
-#include <cstddef>
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/component_base.hpp>
 #include <ftxui/component/event.hpp>
@@ -9,7 +7,6 @@
 #include <ftxui/screen/color.hpp>
 #include <ftxui/screen/terminal.hpp>
 #include <vector>
-#include <algorithm>
 
 ChatWindow::ChatWindow(App* app)
   : app_(app),
@@ -17,7 +14,7 @@ ChatWindow::ChatWindow(App* app)
     input_component_ = ftxui::Input(&input_text_, "Type here..");
 
     // event handler
-    input_component_ |= ftxui::CatchEvent([this](ftxui::Event event) {
+    input_component_ |= ftxui::CatchEvent([this](const ftxui::Event& event) {
       if (event == ftxui::Event::Return && input_text_ != "") {
         app_->sendMessageToSelected(input_text_);
         input_text_.clear();

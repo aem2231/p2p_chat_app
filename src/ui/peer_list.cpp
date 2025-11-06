@@ -44,7 +44,7 @@ PeerList::PeerList(App* app, ftxui::Component chat_input)
     });
 
 
-    container_ |= ftxui::CatchEvent([this](ftxui::Event event) {
+    container_ |= ftxui::CatchEvent([this](const ftxui::Event& event) {
       if (event == ftxui::Event::ArrowDown) {
         int current_index = app_->getSelectedIndex();
         int peer_count = app_->getPeers().size();

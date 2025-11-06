@@ -31,10 +31,9 @@ class App {
   bool listening_;
   void onMessageReceived(std::shared_ptr<Peer> from, const Message& msg);
   void listenerLoop();
-  std::pair<std::string, std::string> parseHandshake(const std::string& handshake);
 
   public:
-  App(boost::asio::io_context& io_ctx);
+  explicit App(boost::asio::io_context& io_ctx);
 
   ~App();
 
