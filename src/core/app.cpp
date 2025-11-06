@@ -19,6 +19,7 @@ App::App(boost::asio::io_context& io_ctx)
     io_context_(io_ctx),
     acceptor_(io_context_),
     listener_thread(std::thread(&App::listenerLoop, this)),
+    listener_thread(std::thread(&App::listenerLoop, this)),
     listening_(true) {
 
   // configure acceptor
@@ -81,9 +82,8 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
   try {
     new_connection->connect();
   } catch (const std::exception& e) {
-    std::cerr << "Something went wrong: " << e.what() << std::endl;
+    std::cerr << "Connection failed: " << e.what() << std::endl;
     connections_.erase(peer);
-    throw;
   }
 }
 
