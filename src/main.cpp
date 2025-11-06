@@ -37,9 +37,9 @@ int main() {
         should_refresh_ui = true;
       }
 
-      // refresh peer list every 30s
+      // refresh peer list every 3s
       auto now = std::chrono::steady_clock::now();
-      if (now - last_peer_refresh > std::chrono::seconds(10)) {
+      if (now - last_peer_refresh > std::chrono::seconds(3)) {
         app.refreshPeers();
         last_peer_refresh = now;
         should_refresh_ui = true;
