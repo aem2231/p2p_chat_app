@@ -3,7 +3,6 @@
 #include "network/connection.hpp"
 #include "network/peer.hpp"
 #include <cstddef>
-#include <istream>
 #include <memory>
 #include <iostream>
 #include <mutex>
