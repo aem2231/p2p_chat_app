@@ -76,9 +76,13 @@ bool Connection::sendMessage(const Message& msg) {
     boost::asio::write(socket_, boost::asio::buffer(data));
     return true;
   } catch (const boost::system::system_error& e) {
-    std::cerr << "Failed to send message: " << e.what() << std::endl;
-    std::lock_guard<std::mutex> lock(mutex_);
-    connected_ = false;
+    {
+      const std::lock_guard<std::mutex> lock(mutex_);
+      if (!connected_) {
+        return false;
+      }
+      connected_ = false;
+    }
     if (on_disconnect_) {
       on_disconnect_();
     }
@@ -97,9 +101,17 @@ void Connection::receiveLoop() {
       on_message_received_(Message::deserialize(data));
 
     } catch (const boost::system::system_error& e) {
-      //std::cerr << "Something went wrong: " << e.what() << std::endl;
-      std::lock_guard<std::mutex> lock(mutex_);
-      connected_ = false;
+      // the connection has died
+      {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        // check if another thread has already handled the disconnect.
+        if (!connected_) {
+          return;
+        }
+        connected_ = false;
+      }
+
+      // no longer holding our internal lock, it is safe to call the external callback.
       if (on_disconnect_) {
         on_disconnect_();
       }

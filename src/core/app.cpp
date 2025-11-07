@@ -257,8 +257,15 @@ void App::listenerLoop() {
           std::move(socket)
         );
         {
+            std::shared_ptr<Connection> old_connection;
             const std::lock_guard<std::mutex> lock(app_mutex_);
-            connections_[connected_peer] = new_connection;
+            auto it = connections_.find(connected_peer);
+            if (it != connections_.end()) {
+                old_connection = it->second;
+                it->second = new_connection;
+            } else {
+                connections_.insert({connected_peer, new_connection});
+            }
         }
       } else {
         socket.close();
