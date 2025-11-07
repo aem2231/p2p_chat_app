@@ -6,6 +6,7 @@
 #include <boost/asio.hpp>
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 int main() {
   boost::asio::io_context io_context;
@@ -27,11 +28,13 @@ int main() {
 
   auto screen = ftxui::ScreenInteractive::Fullscreen();
 
-  std::thread poller([&] {
+  std::atomic<bool> running(true);
+
+  std::thread poller([&app, &running, &screen] {
     auto last_peer_refresh = std::chrono::steady_clock::now();
     std::string last_status_message;
 
-    while (true) {
+    while (running) {
       bool should_refresh_ui = false;
 
       // check new messages
@@ -63,9 +66,10 @@ int main() {
       std::this_thread::sleep_for(100ms);
     }
   });
-  poller.detach();
-
   screen.Loop(layout);
+  running = false;
+  poller.join();
+
 
   return 0;
 }

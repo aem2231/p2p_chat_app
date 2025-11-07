@@ -43,6 +43,12 @@ void App::stop() {
     listener_thread.join();
   }
   discovery_.stop();
+  const std::lock_guard<std::mutex> lock(connector_thread_mutex_);
+  for (auto& thread : connector_threads_) {
+    if (thread.joinable()) {
+      thread.join();
+    }
+  }
 }
 
 const std::vector<std::shared_ptr<Peer>>& App::getPeers() const {
@@ -72,7 +78,8 @@ int App::getSelectedIndex() const {
 }
 
 void App::connectToPeer(std::shared_ptr<Peer> peer) {
-  std::thread connector_thread([this, peer] {
+  const std::lock_guard<std::mutex> lock(connector_thread_mutex_);
+  connector_threads_.emplace_back([this, peer] {
     // check if we are connecting to a peer to prevent double connections
     {
       const std::lock_guard<std::mutex> lock(connecting_peers_mutex_);
@@ -138,7 +145,6 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
       connecting_peers_.erase(peer);
     }
   });
-  connector_thread.detach();
 }
 
 bool App::isConnectedTo(std::shared_ptr<Peer> peer) const {

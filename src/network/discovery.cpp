@@ -29,15 +29,19 @@ void Discovery::start() {
 
   running_ = true;
   broadcast_thread_ = std::thread(&Discovery::broadcastLoop, this);
-  broadcast_thread_.detach();
   receive_thread_ = std::thread(&Discovery::receiveLoop, this);
-  receive_thread_.detach();
 }
 
 void Discovery::stop() {
   running_ = false;
   boost::system::error_code ec;
   socket_.close(ec);
+  if (broadcast_thread_.joinable()) {
+    broadcast_thread_.join();
+  }
+  if (receive_thread_.joinable()) {
+    receive_thread_.join();
+  }
 }
 
 void Discovery::addPeer(const std::shared_ptr<Peer>& new_peer) {

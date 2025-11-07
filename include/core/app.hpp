@@ -36,6 +36,8 @@ class App {
   std::set<std::shared_ptr<Peer>> connecting_peers_;
   std::string status_message_;
   mutable std::mutex app_mutex_;
+  mutable std::mutex connector_thread_mutex_;
+  std::vector<std::thread> connector_threads_;
 
   public:
   explicit App(boost::asio::io_context& io_ctx);
