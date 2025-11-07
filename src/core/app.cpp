@@ -127,6 +127,7 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
 
     try {
       new_connection->connect();
+      status_message_ = "";
     } catch (const std::exception& e) {
       const std::lock_guard<std::mutex> lock(app_mutex_);
       connections_.erase(peer);
