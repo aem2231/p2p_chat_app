@@ -20,6 +20,11 @@ ChatWindow::ChatWindow(App* app)
         input_text_.clear();
         return true;
       }
+
+      if (event == ftxui::Event::ArrowLeft) {
+        peer_list_->TakeFocus();
+        return true;
+      }
       return false;
     });
 
@@ -88,4 +93,9 @@ ChatWindow::ChatWindow(App* app)
 
 ftxui::Component ChatWindow::getComponent() {
   return container_;
+}
+
+// setter to link peer_list
+void ChatWindow::setPeerListComponent(ftxui::Component peer_list) {
+  peer_list_ = peer_list;
 }

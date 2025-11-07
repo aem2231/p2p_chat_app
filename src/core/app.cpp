@@ -4,7 +4,6 @@
 #include "network/peer.hpp"
 #include <cstddef>
 #include <memory>
-#include <iostream>
 #include <mutex>
 #include <string>
 #include <utility>

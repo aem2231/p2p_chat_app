@@ -9,9 +9,11 @@ class ChatWindow{
   std::string input_text_;
   ftxui::Component input_component_;
   ftxui::Component container_;
+  ftxui::Component peer_list_;
 
   public:
   ChatWindow(App* app);
   ftxui::Component getInputComponent() { return input_component_; }
   ftxui::Component getComponent();
+  void setPeerListComponent(ftxui::Component peer_list);
 };

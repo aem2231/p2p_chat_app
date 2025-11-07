@@ -17,6 +17,7 @@ int main() {
 
   ChatWindow chat_window(&app);
   PeerList peer_list(&app, chat_window.getInputComponent());
+  chat_window.setPeerListComponent(peer_list.getComponent());
 
   // Layout
   auto layout = ftxui::Container::Horizontal({
