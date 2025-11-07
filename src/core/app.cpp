@@ -101,9 +101,16 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
     };
 
     auto on_disconnect_callback = [this, peer] {
-      const std::lock_guard<std::mutex> lock(app_mutex_);
-      connections_.erase(peer);
-      status_message_ = "Connection to " + peer->getHostname() + " lost.";
+      std::shared_ptr<Connection> old_connection;
+      {
+        const std::lock_guard<std::mutex> lock(app_mutex_);
+        auto it = connections_.find(peer);
+        if (it != connections_.end()) {
+          old_connection = it->second;
+          connections_.erase(it);
+        }
+        status_message_ = "Connection to " + peer->getHostname() + " lost.";
+      }
     };
 
     auto new_connection = std::make_shared<Connection>(
@@ -239,10 +246,17 @@ void App::listenerLoop() {
 
       if (connected_peer) {
         auto on_disconnect_callback = [this, connected_peer] {
-          const std::lock_guard<std::mutex> lock(app_mutex_);
-          connections_.erase(connected_peer);
-          if (connected_peer) {
-            status_message_ = "Connection to " + connected_peer->getHostname() + " lost.";
+          std::shared_ptr<Connection> old_connection;
+          {
+            const std::lock_guard<std::mutex> lock(app_mutex_);
+            auto it = connections_.find(connected_peer);
+            if (it != connections_.end()) {
+              old_connection = it->second;
+              connections_.erase(it);
+            }
+            if (connected_peer) {
+              status_message_ = "Connection to " + connected_peer->getHostname() + " lost.";
+            }
           }
         };
 

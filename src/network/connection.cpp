@@ -81,42 +81,40 @@ bool Connection::sendMessage(const Message& msg) {
       if (!connected_) {
         return false;
       }
-      connected_ = false;
     }
     if (on_disconnect_) {
       on_disconnect_();
     }
+    connected_ = false;
     return false;
   }
 }
 
 void Connection::receiveLoop() {
-  boost::asio::streambuf buffer;
-  while(connected_) {
-    try { // listen for incoming messages while connected
+  try {
+    boost::asio::streambuf buffer;
+    while(connected_) {
       boost::asio::read_until(socket_, buffer, "\n");
       std::istream is(&buffer); // place the buffer into an input stream
       std::string data;
       std::getline(is, data); // remove the delimiter
       on_message_received_(Message::deserialize(data));
-
-    } catch (const boost::system::system_error& e) {
-      // the connection has died
-      {
-        const std::lock_guard<std::mutex> lock(mutex_);
-        // check if another thread has already handled the disconnect.
-        if (!connected_) {
-          return;
+    }
+  } catch (const std::exception& e) {
+    {
+      const std::lock_guard<std::mutex> lock(mutex_);
+      // check if another thread has already handled the disconnect.
+      if (!connected_) {
+        // no longer holding our internal lock, it is safe to call the external callback.
+        if (on_disconnect_) {
+          on_disconnect_();
         }
-        connected_ = false;
-      }
-
-      // no longer holding our internal lock, it is safe to call the external callback.
-      if (on_disconnect_) {
-        on_disconnect_();
+        return;
       }
     }
-  };
+
+
+  }
 }
 
 void Connection::disconnect() {
@@ -124,8 +122,12 @@ void Connection::disconnect() {
     std::lock_guard<std::mutex> lock(mutex_);
     connected_ = false;
   }
-  socket_.close();
-  if (receive_thread_.joinable()) {
+  try {
+    socket_.close();
+  } catch (const std::exception& e) {
+    // ignore
+  }
+  if (receive_thread_.joinable() && receive_thread_.get_id() != std::this_thread::get_id()) {
     receive_thread_.join();
   }
 }
