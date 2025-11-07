@@ -96,14 +96,20 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
       return;
     }
 
-    auto callback = [this, peer](const Message& msg) {
+    auto on_message_callback = [this, peer](const Message& msg) {
       this->onMessageReceived(peer, msg);
+    };
+
+    auto on_disconnect_callback = [this, peer] {
+      connections_.erase(peer);
+      status_message_ = "Connection to " + peer->getHostname() + " lost.";
     };
 
     auto new_connection = std::make_shared<Connection>(
       peer,
       io_context_,
-      callback
+      on_message_callback,
+      on_disconnect_callback
     );
 
     connections_.insert({peer, new_connection});
@@ -111,6 +117,7 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
       new_connection->connect();
     } catch (const std::exception& e) {
       connections_.erase(peer);
+      status_message_ = "Failed to connect to " + peer->getHostname();
     }
 
     {
@@ -167,7 +174,11 @@ void App::sendMessageToSelected(const std::string& text) {
 
   // Create the message with our real hostname to send over the network
   auto message_to_send = Message(my_hostname_, text);
-  connection->sendMessage(message_to_send);
+  bool message_sent_success = connection->sendMessage(message_to_send);
+  if (!message_sent_success) {
+    status_message_ = "Failed to send message.";
+    return;
+  }
 
   // Create a second version of the message for our own local history
   auto message_for_history = Message("You", text);
@@ -212,13 +223,21 @@ void App::listenerLoop() {
         }
       }
 
+      auto on_disconnect_callback = [this, connected_peer] {
+        connections_.erase(connected_peer);
+        if (connected_peer) {
+          status_message_ = "Connection to " + connected_peer->getHostname() + " lost.";
+        }
+      };
+
       if (connected_peer) {
-        auto callback = [this, connected_peer](const Message& msg) {
+        auto on_message_callback = [this, connected_peer](const Message& msg) {
           this->onMessageReceived(connected_peer, msg);
         };
         auto new_connection = std::make_shared<Connection>(
           connected_peer,
-          callback,
+          on_message_callback,
+          on_disconnect_callback,
           std::move(socket)
         );
         connections_[connected_peer] = new_connection;
@@ -237,4 +256,8 @@ void App::performInitialDiscovery() {
 
 void App::refreshPeers() {
   peers_ = discovery_.getPeers();
+}
+
+const std::string& App::getStatusMessage() const {
+  return status_message_;
 }

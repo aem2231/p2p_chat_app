@@ -25,11 +25,15 @@ ChatWindow::ChatWindow(App* app)
 
     container_ = ftxui::Renderer(input_component_, [this]() {
       auto selected = app_->getSelectedPeer();
+      auto status = app_->getStatusMessage();
 
       // set title to hostname of peer
       auto title = ftxui::text(selected ?
         selected->getHostname() :
         "No user selected") | ftxui::bold | ftxui::center;
+
+      auto status_display = ftxui::text(status);
+      status_display |= ftxui::color(ftxui::Color::Red);
 
       // messages area
       //auto messages = ftxui::text("Messages will appear here") | ftxui::dim;
@@ -75,6 +79,7 @@ ChatWindow::ChatWindow(App* app)
         messages_display | ftxui::flex,
         ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1),
         ftxui::separator(),
+        status_display,
         input_display
       }) | ftxui::border | size(ftxui::WIDTH, ftxui::EQUAL, static_cast<int>(ftxui::Terminal::Size().dimx) - 20);
 

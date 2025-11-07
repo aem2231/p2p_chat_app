@@ -14,19 +14,23 @@ using boost::asio::ip::tcp;
 Connection::Connection(
   std::shared_ptr<Peer> peer,
   boost::asio::io_context& io_ctx,
-  std::function<void(const Message&)> callback
+  std::function<void(const Message&)> message_callback,
+  std::function<void()> on_disconnect_
 ) : peer_(peer),
   socket_(io_ctx),
-  on_message_received_(callback),
+  on_message_received_(message_callback),
+  on_disconnect_(on_disconnect_),
   connected_(false) {};
 
 Connection::Connection(
   std::shared_ptr<Peer> peer,
-  std::function<void(const Message&)> callback,
+  std::function<void(const Message&)> message_callback,
+  std::function<void()> on_disconnect,
   boost::asio::ip::tcp::socket socket
 ) : peer_(peer),
     socket_(std::move(socket)),
-    on_message_received_(callback),
+    on_message_received_(message_callback),
+    on_disconnect_(on_disconnect),
     connected_(true) {
   receive_thread_ = std::thread(&Connection::receiveLoop, this);
 }
@@ -58,11 +62,11 @@ void Connection::connect() {
   }
 }
 
-void Connection::sendMessage(const Message& msg) {
+bool Connection::sendMessage(const Message& msg) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!connected_) {
-      return;
+      return false;
     }
   }
 
@@ -70,10 +74,12 @@ void Connection::sendMessage(const Message& msg) {
     std::string data = msg.serialize();
     data+='\n';
     boost::asio::write(socket_, boost::asio::buffer(data));
+    return true;
   } catch (const boost::system::system_error& e) {
     std::cerr << "Failed to send message: " << e.what() << std::endl;
     std::lock_guard<std::mutex> lock(mutex_);
     connected_ = false;
+    return false;
   }
 }
 
@@ -91,6 +97,9 @@ void Connection::receiveLoop() {
       std::cerr << "Something went wrong: " << e.what() << std::endl;
       std::lock_guard<std::mutex> lock(mutex_);
       connected_ = false;
+      if (on_disconnect_) {
+        on_disconnect_();
+      }
     }
   };
 }

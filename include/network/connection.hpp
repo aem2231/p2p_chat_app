@@ -14,6 +14,7 @@ class Connection {
   boost::asio::ip::tcp::socket socket_;
   std::thread receive_thread_;
   std::function<void(const Message&)> on_message_received_;
+  std::function<void()> on_disconnect_;
   bool connected_;
   mutable std::mutex mutex_;
 
@@ -25,19 +26,21 @@ class Connection {
   Connection(
     std::shared_ptr<Peer> peer,
     boost::asio::io_context& io_ctx,
-    std::function<void(const Message&)> callback
+    std::function<void(const Message&)> message_callback,
+    std::function<void()> on_disconnect
   );
 
   Connection(
     std::shared_ptr<Peer> peer,
-    std::function<void(const Message&)> callback,
+    std::function<void(const Message&)> message_callback,
+    std::function<void()> on_disconnect,
     boost::asio::ip::tcp::socket socket
   );
 
   ~Connection();
 
   void connect();
-  void sendMessage(const Message& msg);
+  bool sendMessage(const Message& msg);
   void disconnect();
   bool isConnected() const;
 

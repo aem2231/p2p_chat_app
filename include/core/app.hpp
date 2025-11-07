@@ -34,6 +34,7 @@ class App {
   void listenerLoop();
   mutable std::mutex connecting_peers_mutex_;
   std::set<std::shared_ptr<Peer>> connecting_peers_;
+  std::string status_message_;
 
   public:
   explicit App(boost::asio::io_context& io_ctx);
@@ -57,4 +58,5 @@ class App {
   void performInitialDiscovery();
   void refreshPeers();
   void stop();
+  const std::string& getStatusMessage() const;
 };
