@@ -57,7 +57,7 @@ void Connection::connect() {
 
   } catch (const boost::system::system_error& e) {
     // connection failed
-    std::cerr << "Connection failed: " << e.what() << std::endl;
+    // The caller (App::connectToPeer) will handle the cleanup.
     throw; // rethrow for caller to handle
   }
 }
@@ -97,7 +97,7 @@ void Connection::receiveLoop() {
       on_message_received_(Message::deserialize(data));
 
     } catch (const boost::system::system_error& e) {
-      std::cerr << "Something went wrong: " << e.what() << std::endl;
+      //std::cerr << "Something went wrong: " << e.what() << std::endl;
       std::lock_guard<std::mutex> lock(mutex_);
       connected_ = false;
       if (on_disconnect_) {

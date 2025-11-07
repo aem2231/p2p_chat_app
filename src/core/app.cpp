@@ -277,7 +277,8 @@ void App::refreshPeers() {
   peers_ = discovery_.getPeers();
 }
 
-const std::string& App::getStatusMessage() const {
+//const std::string& App::getStatusMessage() const {
+std::string App::getStatusMessage() const {
   const std::lock_guard<std::mutex> lock(app_mutex_);
   return status_message_;
 }

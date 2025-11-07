@@ -59,5 +59,6 @@ class App {
   void performInitialDiscovery();
   void refreshPeers();
   void stop();
-  const std::string& getStatusMessage() const;
+  //   const std::string& getStatusMessage() const;
+  std::string getStatusMessage() const;
 };
