@@ -17,7 +17,6 @@ App::App(boost::asio::io_context& io_ctx)
     selected_index_(-1),
     io_context_(io_ctx),
     acceptor_(io_context_),
-    listener_thread(std::thread(&App::listenerLoop, this)),
     listening_(true) {
 
   try {
@@ -30,6 +29,8 @@ App::App(boost::asio::io_context& io_ctx)
   acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
   acceptor_.bind(boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), DEFAULT_PORT));
   acceptor_.listen();
+
+  listener_thread = std::thread(&App::listenerLoop, this);
 }
 
 App::~App() {
