@@ -104,11 +104,12 @@ void Connection::receiveLoop() {
     {
       const std::lock_guard<std::mutex> lock(mutex_);
       // check if another thread has already handled the disconnect.
-      if (!connected_) {
+      if (connected_) {
         // no longer holding our internal lock, it is safe to call the external callback.
         if (on_disconnect_) {
           on_disconnect_();
         }
+        connected_ = false;
         return;
       }
     }
