@@ -1,7 +1,8 @@
 # Compiler settings
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -I./include
-LDFLAGS := -lftxui-component -lftxui-dom -lftxui-screen -lboost_system -lssl -lcrypto -lpthread
+CXXFLAGS := -std=c++17 -Wall -Wextra -I./include -g -fsanitize=thread
+LDFLAGS := -lftxui-component -lftxui-dom -lftxui-screen -lboost_system -lssl -lcrypto -lpthread -fsanitize=thread
+
 
 # Directory structure
 SRCDIR := src
