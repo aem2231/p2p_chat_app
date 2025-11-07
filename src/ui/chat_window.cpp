@@ -29,6 +29,8 @@ ChatWindow::ChatWindow(App* app)
     });
 
     container_ = ftxui::Renderer(input_component_, [this]() {
+      ftxui::Elements elements;
+
       auto selected = app_->getSelectedPeer();
       auto status = app_->getStatusMessage();
 
@@ -41,7 +43,7 @@ ChatWindow::ChatWindow(App* app)
       status_display |= ftxui::color(ftxui::Color::Red);
 
       // messages area
-      //auto messages = ftxui::text("Messages will appear here") | ftxui::dim;
+      auto messages = ftxui::text("Messages will appear here") | ftxui::dim;
       ftxui::Element messages_display;
       const auto& message_history = app_->getMessageHistory(selected);
 
@@ -76,16 +78,22 @@ ChatWindow::ChatWindow(App* app)
         input_component_->Render()
       });
 
+      // add elements to vector
+      elements.push_back(title);
+      elements.push_back(ftxui::separator());
+      elements.push_back(ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, static_cast<float>(0.5)));  // spacing
+      elements.push_back(messages_display | ftxui::flex);
+      elements.push_back(ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1));
+      if (status != "") {
+        elements.push_back(ftxui::separator());
+        elements.push_back(status_display);
+      }
+      elements.push_back(ftxui::separator());
+      elements.push_back(input_display);
+
       // layout
       return ftxui::vbox({
-        title,
-        ftxui::separator(),
-        ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, static_cast<float>(0.5)),  // spacing
-        messages_display | ftxui::flex,
-        ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1),
-        ftxui::separator(),
-        status_display,
-        input_display
+        elements
       }) | ftxui::border | size(ftxui::WIDTH, ftxui::EQUAL, static_cast<int>(ftxui::Terminal::Size().dimx) - 20);
 
     });

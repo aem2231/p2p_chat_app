@@ -279,6 +279,7 @@ void App::listenerLoop() {
                 it->second = new_connection;
             } else {
                 connections_.insert({connected_peer, new_connection});
+                status_message_ = "";
             }
         }
       } else {
