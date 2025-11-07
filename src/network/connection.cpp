@@ -79,6 +79,9 @@ bool Connection::sendMessage(const Message& msg) {
     std::cerr << "Failed to send message: " << e.what() << std::endl;
     std::lock_guard<std::mutex> lock(mutex_);
     connected_ = false;
+    if (on_disconnect_) {
+      on_disconnect_();
+    }
     return false;
   }
 }

@@ -27,31 +27,13 @@ int main() {
   auto screen = ftxui::ScreenInteractive::Fullscreen();
 
   std::thread poller([&] {
-    auto last_peer_refresh = std::chrono::steady_clock::now();
-
     while (true) {
-      bool should_refresh_ui = false;
-
-      // check for new messages
-      if (!app.pollIncomingMessages().empty()) {
-        should_refresh_ui = true;
-      }
-
-      // refresh peer list every 3s
-      auto now = std::chrono::steady_clock::now();
-      if (now - last_peer_refresh > std::chrono::seconds(3)) {
-        app.refreshPeers();
-        last_peer_refresh = now;
-        should_refresh_ui = true;
-      }
-
-      // refresh ui if needed
-      if (should_refresh_ui) {
-        screen.PostEvent(ftxui::Event::Custom);
-      }
+      // unconditionally post a refresh event.
+      // ftxui will only redraw the screen if the model has changed
+      screen.PostEvent(ftxui::Event::Custom);
 
       using namespace std::chrono_literals;
-      std::this_thread::sleep_for(100ms);
+      std::this_thread::sleep_for(100ms); // Poll 10 times per second
     }
   });
   poller.detach();
