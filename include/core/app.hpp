@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 #include <set>
+#include <atomic>
 
 class App {
   private:
@@ -29,7 +30,7 @@ class App {
   boost::asio::ip::tcp::acceptor acceptor_;
   std::thread listener_thread;
   std::mutex listener_mutex_;
-  bool listening_;
+  std::atomic<bool> listening_;
   void onMessageReceived(std::shared_ptr<Peer> from, const Message& msg);
   void listenerLoop();
   mutable std::mutex connecting_peers_mutex_;
