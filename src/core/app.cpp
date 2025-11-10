@@ -11,31 +11,27 @@
 
 constexpr unsigned short DEFAULT_PORT = 9000;
 
-App::App(boost::asio::io_context& io_ctx)
+App::App(boost::asio::io_context &io_ctx)
 
-  : my_hostname_("unknown"),
-    selected_index_(-1),
-    io_context_(io_ctx),
-    acceptor_(io_context_),
-    listening_(true) {
+    : my_hostname_("unknown"), selected_index_(-1), io_context_(io_ctx),
+      acceptor_(io_context_), listening_(true) {
 
   try {
     my_hostname_ = boost::asio::ip::host_name();
-  } catch (const boost::system::system_error&) {
+  } catch (const boost::system::system_error &) {
     // fallback to "unknown"
   }
 
   acceptor_.open(boost::asio::ip::tcp::v4());
   acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
-  acceptor_.bind(boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), DEFAULT_PORT));
+  acceptor_.bind(
+      boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), DEFAULT_PORT));
   acceptor_.listen();
 
   listener_thread = std::thread(&App::listenerLoop, this);
 }
 
-App::~App() {
-  stop();
-}
+App::~App() { stop(); }
 
 void App::stop() {
   listening_ = false;
@@ -45,20 +41,20 @@ void App::stop() {
   }
   discovery_.stop();
   const std::lock_guard<std::mutex> lock(connector_thread_mutex_);
-  for (auto& thread : connector_threads_) {
+  for (auto &thread : connector_threads_) {
     if (thread.joinable()) {
       thread.join();
     }
   }
 }
 
-const std::vector<std::shared_ptr<Peer>>& App::getPeers() const {
+const std::vector<std::shared_ptr<Peer>> &App::getPeers() const {
   return peers_;
 }
 
 // checks that an index is within the bounds of the peers vector
 void App::selectPeer(int index) {
-  if (index < 0 ||static_cast<size_t>(index) >= peers_.size()) {
+  if (index < 0 || static_cast<size_t>(index) >= peers_.size()) {
     selected_index_ = -1;
     return;
   }
@@ -68,15 +64,13 @@ void App::selectPeer(int index) {
 
 // returns a pointer to the selected peer object
 std::shared_ptr<Peer> App::getSelectedPeer() const {
-  if (selected_index_ ==  -1){
+  if (selected_index_ == -1) {
     return nullptr;
   }
-  return peers_[selected_index_ ];
+  return peers_[selected_index_];
 }
 
-int App::getSelectedIndex() const {
-  return selected_index_;
-}
+int App::getSelectedIndex() const { return selected_index_; }
 
 void App::connectToPeer(std::shared_ptr<Peer> peer) {
   const std::lock_guard<std::mutex> lock(connector_thread_mutex_);
@@ -103,7 +97,7 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
       return;
     }
 
-    auto on_message_callback = [this, peer](const Message& msg) {
+    auto on_message_callback = [this, peer](const Message &msg) {
       this->onMessageReceived(peer, msg);
     };
 
@@ -121,11 +115,7 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
     };
 
     auto new_connection = std::make_shared<Connection>(
-      peer,
-      io_context_,
-      on_message_callback,
-      on_disconnect_callback
-    );
+        peer, io_context_, on_message_callback, on_disconnect_callback);
 
     {
       const std::lock_guard<std::mutex> lock(app_mutex_);
@@ -135,7 +125,7 @@ void App::connectToPeer(std::shared_ptr<Peer> peer) {
     try {
       new_connection->connect();
       status_message_ = "";
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
       const std::lock_guard<std::mutex> lock(app_mutex_);
       connections_.erase(peer);
       status_message_ = "Failed to connect to " + peer->getHostname();
@@ -164,7 +154,8 @@ bool App::isConnectingTo(std::shared_ptr<Peer> peer) const {
   return connecting_peers_.count(peer);
 }
 
-std::shared_ptr<Connection> App::getConnection(std::shared_ptr<Peer> peer) const {
+std::shared_ptr<Connection>
+App::getConnection(std::shared_ptr<Peer> peer) const {
   const std::lock_guard<std::mutex> lock(app_mutex_);
   auto connection = connections_.find(peer);
   if (connection == connections_.end()) {
@@ -173,7 +164,7 @@ std::shared_ptr<Connection> App::getConnection(std::shared_ptr<Peer> peer) const
   return connection->second;
 }
 
-void App::onMessageReceived(std::shared_ptr<Peer> from, const Message& msg) {
+void App::onMessageReceived(std::shared_ptr<Peer> from, const Message &msg) {
   {
     const std::lock_guard<std::mutex> lock(message_queue_mutex_);
     message_history_[from].push_back(msg);
@@ -181,7 +172,7 @@ void App::onMessageReceived(std::shared_ptr<Peer> from, const Message& msg) {
   }
 }
 
-void App::sendMessageToSelected(const std::string& text) {
+void App::sendMessageToSelected(const std::string &text) {
   auto peer = getSelectedPeer();
   if (!peer) {
     return;
@@ -192,7 +183,7 @@ void App::sendMessageToSelected(const std::string& text) {
     const std::lock_guard<std::mutex> lock(app_mutex_);
     auto it = connections_.find(peer);
     if (it != connections_.end()) {
-        connection = it->second;
+      connection = it->second;
     }
   }
 
@@ -214,7 +205,8 @@ void App::sendMessageToSelected(const std::string& text) {
   }
 }
 
-std::vector<std::pair<std::shared_ptr<Peer>, Message>> App::pollIncomingMessages() {
+std::vector<std::pair<std::shared_ptr<Peer>, Message>>
+App::pollIncomingMessages() {
   {
     const std::lock_guard<std::mutex> lock(message_queue_mutex_);
     std::vector<std::pair<std::shared_ptr<Peer>, Message>> messages;
@@ -226,7 +218,7 @@ std::vector<std::pair<std::shared_ptr<Peer>, Message>> App::pollIncomingMessages
   }
 }
 
-const std::vector<Message>& App::getMessageHistory(std::shared_ptr<Peer> peer) {
+const std::vector<Message> &App::getMessageHistory(std::shared_ptr<Peer> peer) {
   auto history = message_history_.find(peer);
   if (history == message_history_.end()) {
     static const std::vector<Message> empty_history;
@@ -244,7 +236,7 @@ void App::listenerLoop() {
       auto remote_ip = socket.remote_endpoint().address();
       std::shared_ptr<Peer> connected_peer = nullptr;
 
-      for (const auto& peer : peers_) {
+      for (const auto &peer : peers_) {
         if (peer->getIpAddr() == remote_ip) {
           connected_peer = peer;
           break;
@@ -262,51 +254,45 @@ void App::listenerLoop() {
               connections_.erase(it);
             }
             if (connected_peer) {
-              status_message_ = "Connection to " + connected_peer->getHostname() + " lost.";
+              status_message_ =
+                  "Connection to " + connected_peer->getHostname() + " lost.";
             }
           }
         };
 
-        auto on_message_callback = [this, connected_peer](const Message& msg) {
+        auto on_message_callback = [this, connected_peer](const Message &msg) {
           this->onMessageReceived(connected_peer, msg);
         };
 
         auto new_connection = std::make_shared<Connection>(
-          connected_peer,
-          on_message_callback,
-          on_disconnect_callback,
-          std::move(socket)
-        );
+            connected_peer, on_message_callback, on_disconnect_callback,
+            std::move(socket));
         {
-            std::shared_ptr<Connection> old_connection;
-            const std::lock_guard<std::mutex> lock(app_mutex_);
-            auto it = connections_.find(connected_peer);
-            if (it != connections_.end()) {
-                old_connection = it->second;
-                it->second = new_connection;
-            } else {
-                connections_.insert({connected_peer, new_connection});
-                status_message_ = "";
-            }
+          std::shared_ptr<Connection> old_connection;
+          const std::lock_guard<std::mutex> lock(app_mutex_);
+          auto it = connections_.find(connected_peer);
+          if (it != connections_.end()) {
+            old_connection = it->second;
+            it->second = new_connection;
+          } else {
+            connections_.insert({connected_peer, new_connection});
+            status_message_ = "";
+          }
         }
       } else {
         socket.close();
       }
-    } catch (const boost::system::system_error& e) {
+    } catch (const boost::system::system_error &e) {
       // Errors are expected here if the acceptor is closed.
     }
   }
 }
 
-void App::performInitialDiscovery() {
-  discovery_.start();
-}
+void App::performInitialDiscovery() { discovery_.start(); }
 
-void App::refreshPeers() {
-  peers_ = discovery_.getPeers();
-}
+void App::refreshPeers() { peers_ = discovery_.getPeers(); }
 
-//const std::string& App::getStatusMessage() const {
+// const std::string& App::getStatusMessage() const {
 std::string App::getStatusMessage() const {
   const std::lock_guard<std::mutex> lock(app_mutex_);
   return status_message_;

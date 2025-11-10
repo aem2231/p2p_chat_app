@@ -50,6 +50,7 @@
             spdlog
             bear
             tokei
+	    tree-sitter
           ]
           ++ (if system == "aarch64-darwin" then [] else [ gdb ])
           ++ [ ftxui.packages.${system}.ftxui ];
